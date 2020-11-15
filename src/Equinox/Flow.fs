@@ -78,7 +78,7 @@ module internal Flow =
     /// 2b. if conflicting changes, retry by recommencing at step 1 with the updated state
     let run (log : ILogger) (maxSyncAttempts : int, resyncRetryPolicy, createMaxAttemptsExhaustedException)
         (syncState : SyncState<'event, 'state>)
-        (decide : 'state -> Async<'result * 'event list>)
+        (decide : ISyncContext<'state> -> Async<'result * 'event list>)
         (mapResult : 'result -> SyncState<'event, 'state> -> 'resultEx)
         : Async<'resultEx> =
 
@@ -87,7 +87,7 @@ module internal Flow =
         /// Run a decision cycle - decide what events should be appended given the presented state
         let rec loop attempt : Async<'resultEx> = async {
             let log = if attempt = 1 then log else log.ForContext("syncAttempt", attempt)
-            let! result, events = decide (syncState :> ISyncContext<'state>).State
+            let! result, events = decide (syncState :> ISyncContext<'state>)
             if List.isEmpty events then
                 log.Debug "No events generated"
                 return mapResult result syncState
